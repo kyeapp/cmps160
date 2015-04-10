@@ -1,0 +1,14 @@
+// Kevin Yeap
+// kyeap@ucsc.edu
+// 1270597
+// A.Pang S15
+
+I've combined shader initialization into the javascript file. 
+There is an excessive amount of comments. I needed them or I would forget.
+triangle color changing was just me confirming what the setInterval function() does.
+
+
+Files included:
+  lab1_kyeap.html
+  lab1_kyeap.js
+  README
