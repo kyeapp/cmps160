@@ -3,13 +3,23 @@
 // 1270597
 // A.Pang S15
 
-triangle colors predefined to white.
-random triangles are working
-subdivision is working
-used variable last_pressed to keep track of "button state"
+Wireframe rending of the Mandelbrot set. wires are set to blue. background is black.
+use the textboxes to specify your own coordinates and click generate to produce the image.
+an empty textbox is the same as inputting 0.
+
+Preset generates a Mandelbrot image.
+
+mandelbrot set is built exactly to spec as specified in the cmps12A link.
+https://users.soe.ucsc.edu/~pang/12a/w05/prog/pgm5.html
+
+x and y coordinates go from -255 to 255.
+max z is 255.
+image was centered at middle of the height before rotation for isometric view.
+
+isometric view point is from [1, 1, 1]
+I did a Z rotation followed by an X rotation.
+
+the image is scaled out by a factor of 350 (matrix multiply by 1/350)
 
 
-Files included:
-  lab2_kyeap.html
-  lab2_kyeap.js
-  README
+

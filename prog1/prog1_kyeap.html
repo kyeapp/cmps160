@@ -3,27 +3,36 @@
   // kyeap@ucsc.edu
   // 1270597
   // A.Pang S15 
+  // program generates mandelbrot set.
 -->
 
 <html>
 
 <head>
-<title>Kevin Yeap Prog 1</title>
+<title>Kevin Yeap prog1</title>
 </head>
-
 
 <script type="text/javascript" src="./prog1_kyeap.js"></script>  <!-- dependenceis-->
 
-
-
 <body onload="setup();"> <!-- function is called upon initialization-->
-<h1>Kevin Yeap Prog 1</h1>
+<h1>Kevin Yeap prog1</h1>
 <canvas id="canvas">HTML5 cavnas not supported.</canvas>
 </body>
 
 <br>
 
-<button id="Random">Random</button>
-<button id="Subdivide">Subdivide</button>
+<button id="Generate">Generate</button>
+<button id="Preset">Preset</button>
+
+<br>
+
+<p id="x_label">x_dimm, y_dimm, left, right, bottom, top</p> 
+<input type="text" id="x_dimm" style="width: 100px;" />
+<input type="text" id="y_dimm" style="width: 100px;" />
+<input type="text" id="left_bound" style="width: 100px;" />
+<input type="text" id="right_bound" style="width: 100px;" />
+<input type="text" id="bottom_bound" style="width: 100px;" />
+<input type="text" id="top_bound" style="width: 100px;" />
+
 
 </html>
