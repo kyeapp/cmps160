@@ -2,9 +2,12 @@
 // kyeap@ucsc.edu
 // 1270597
 // A.Pang S15
-// program generates mandelbrot set.
+// program generates mandelbrot set with shading.
 
 var gl, vbuf, ibuf; //the opengl context
+
+var pointsArray = [];
+var normalsArray = [];
 
 var x_theta = Math.PI/4;
 var x1 = Math.cos(x_theta);
@@ -30,14 +33,26 @@ z3, z4, 0, 0,
 0, 0, 1, 0,
 0, 0, 0, 1];
 
-var s = 1/350;
+var s = 1/375;
 var zoom_matrix =
 [s, 0, 0, 0,
 0, s, 0, 0, 
 0, 0, s, 0,
-0, 0, 0, 1]
+0, 0, 0, 1];
+
+var lightPosition;
+var lightAmbient;
+var lightDiffuse;
+var lightSpecular;
+
+var materialAmbient;
+var materialDiffuse;
+var materialSpecular;
+var materialShininess = 20.0;
 
 function mandelbrot(xx, yy, l_bound, r_bound, b_bound, t_bound) {
+  pointsArray = [];
+  normalsArray = []; 
 
   var x_dim = xx, y_dim = yy, left = l_bound, right = r_bound, topp = t_bound, bottom = b_bound;
 
@@ -52,8 +67,6 @@ function mandelbrot(xx, yy, l_bound, r_bound, b_bound, t_bound) {
 
   var wdx = (wc_xy_max*2)/(x_dim-1); //world dx
   var wdy = (wc_xy_max*2)/(y_dim-1); //world dy
-
-  gl.clear(gl.COLOR_BUFFER_BIT);
   
   //creating 2d array to hold my points
   var image = new Array(x_dim);
@@ -64,14 +77,12 @@ function mandelbrot(xx, yy, l_bound, r_bound, b_bound, t_bound) {
   //generating height coordinates and resizing image to world coordinates
   for (var i = 0; i < x_dim; i++) {
     for (var j = 0; j < y_dim; j++) {
-      image[i][j] = new Float32Array(
-      [wc_xy_min + i*wdx, 
+      image[i][j] = vec4 (
+      wc_xy_min + i*wdx, 
       wc_xy_min + j*wdy, 
-      mandelbrot_height([0,0], [left+i*dx ,topp-j*dy], 0) -(max_iter/2) ] ); 
+      mandelbrot_height([0,0], [left+i*dx ,topp-j*dy], 0) - (max_iter/2) ); 
     }
   }
-  
-  var ax = []; //ax is the array that will be built to contain the points to be drawn
   
   for (var i = 0; i < x_dim-1; i++) {
     for (var j = 0; j < y_dim-1; j++) {
@@ -79,11 +90,11 @@ function mandelbrot(xx, yy, l_bound, r_bound, b_bound, t_bound) {
       var b = image[i][j+1];
       var c = image[i+1][j];
       var d = image[i+1][j+1];
-      ax = ax.concat(quad_to_tri(a, b, c, d));
+      quad_to_tri(a, b, c, d);
     }
   }
 
-  draw_lines(new Float32Array(ax)); //render the lines
+  render(pointsArray, normalsArray); //render Mandelbrot
 
   //mandelbrot height recursion function
   function  mandelbrot_height(c1, c2, rec_index) {
@@ -101,58 +112,84 @@ function mandelbrot(xx, yy, l_bound, r_bound, b_bound, t_bound) {
   }
 }
 
+//arrange points of a quad into an array as two triangles
 function quad_to_tri(a, b, c, d) {
-  var az = [];
   
-  az.push(a[0]);
-  az.push(a[1]);
-  az.push(a[2]);
-  az.push(b[0]);
-  az.push(b[1]);
-  az.push(b[2]);
-  az.push(c[0]);
-  az.push(c[1]);
-  az.push(c[2]);
+  pointsArray.push(a);
+  pointsArray.push(b);
+  pointsArray.push(c);
+  
+  pointsArray.push(b);
+  pointsArray.push(c);
+  pointsArray.push(d);
+  
+  var t1 = subtract(b, a);
+  var t2 = subtract(c, a);
+  var normal = normalize(cross(t2, t1));
+  normal = vec4(normal);
 
-  az.push(b[0]);
-  az.push(b[1]);
-  az.push(b[2]);
-  az.push(c[0]);
-  az.push(c[1]);
-  az.push(c[2]);
-  az.push(d[0]);
-  az.push(d[1]);
-  az.push(d[2]);
+  normalsArray.push(normal);
+  normalsArray.push(normal);
+  normalsArray.push(normal);
   
-  return az;
+  var t3 = subtract(d, b);
+  var t4 = subtract(c, b);
+  var normal2 = normalize(cross(t4, t3));
+  normal2 = vec4(normal2);
+
+  normalsArray.push(normal2);
+  normalsArray.push(normal2);
+  normalsArray.push(normal2);
+
 }
 
-function draw_lines(vtx) {
-  var idx = new Uint16Array([0, 1]);
-  initBuffers(vtx, idx);
-  gl.lineWidth(0.5);
-  gl.uniform4f(shaderProgram.colorUniform, 0, .20, 1, .8);
-  gl.drawArrays(gl.TRIANGLES, 0, vtx.length/3);
+function render(vert, norm) {
+  gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  init_p_buffer(vert);
+  init_n_buffer(norm);
+ // gl.lineWidth(0.5);
+  //gl.uniform4f(shaderProgram.colorUniform, 0, .20, 1, .8);
+  gl.drawArrays(gl.TRIANGLES, 0, vert.length);
   //unbindBuffers();
 }
 
-function initBuffer(glELEMENT_ARRAY_BUFFER, data) {
+function init_p_buffer(data) {
   var buf = gl.createBuffer();
-  gl.bindBuffer(glELEMENT_ARRAY_BUFFER, buf);
-  gl.bufferData(glELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
-  return buf;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, flatten(data), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(shaderProgram.vPosition, 4, gl.FLOAT, false, 0, 0);
 }
 
-function initBuffers(vtx, idx) {
-  vbuf = initBuffer(gl.ARRAY_BUFFER, vtx);
-  ibuf = initBuffer(gl.ELEMENT_ARRAY_BUFFER, idx);
-  gl.vertexAttribPointer(shaderProgram.aposAttrib, 3, gl.FLOAT, false, 0, 0);
+function init_n_buffer(data) {
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+ gl.vertexAttribPointer(shaderProgram.vNormal, 4, gl.FLOAT, false, 0, 0);
+  gl.bufferData(gl.ARRAY_BUFFER, flatten(data), gl.STATIC_DRAW);
 }
 
 function init() {
-  gl.clearColor(0.0, 0.0, 0.0, 1); //preset value of background color to deep sky blue; RGBA
-  gl.clear(gl.COLOR_BUFFER_BIT); //clearing the color buffer to the preset colors
-  //gl.uniformMatrix4fv(shaderProgram.projectionM, false, new Float32Array(isometric)); //Sets values for a 4x4 floating point vector matrix into a uniform location as a matrix or a matrix array.
+  gl.clearColor(0.0, 0.0, 0.0, 1.0); //preset value of background color to deep sky blue; RGBA
+  gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  var lightPosition = vec4(1.0, 1.0, 1.0, 0.0 );
+  var lightAmbient = vec4(0.0, 0.0, 0.0, 1.0 );
+  var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
+  var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
+
+  var materialAmbient = vec4( 1.0, 1.0, 1.0, 1.0 );
+  var materialDiffuse = vec4( 0.0, 0.5, 1.0, 1.0 );
+  var materialSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
+  var materialShininess = 25.0;
+  
+  ambientProduct = mult(lightAmbient, materialAmbient);
+  diffuseProduct = mult(lightDiffuse, materialDiffuse);
+  specularProduct = mult(lightSpecular, materialSpecular);
+  
+  gl.uniform4fv( gl.getUniformLocation(shaderProgram, "ambientProduct"),flatten(ambientProduct) );
+  gl.uniform4fv( gl.getUniformLocation(shaderProgram, "diffuseProduct"),flatten(diffuseProduct) );
+  gl.uniform4fv( gl.getUniformLocation(shaderProgram, "specularProduct"),flatten(specularProduct) );	
+  gl.uniform4fv( gl.getUniformLocation(shaderProgram, "lightPosition"),flatten(lightPosition) );
+  gl.uniform1f( gl.getUniformLocation(shaderProgram, "shininess"),materialShininess );
+
   gl.uniformMatrix4fv(shaderProgram.zoom, false, new Float32Array(zoom_matrix));
   gl.uniformMatrix4fv(shaderProgram.x_rotation, false, new Float32Array(x_rotation_matrix));
   gl.uniformMatrix4fv(shaderProgram.z_rotation, false, new Float32Array(z_rotation_matrix));
@@ -173,6 +210,7 @@ function setup() {
   
   if (!gl) { alert("Unable to initialize WebGL."); } 
   else {
+    
     document.getElementById( "Generate" ).onclick = function () {
       x_box = document.getElementById('x_dimm').value;
       y_box = document.getElementById('y_dimm').value;
@@ -204,7 +242,7 @@ function setup() {
     };
     
     document.getElementById( "Preset" ).onclick = function () {
-      var a = 55, b = 55, c = -1.5, d = .5, e = -1, f = 1;
+      var a = 150, b = 150, c = -1.5, d = .5, e = -1, f = 1;
       mandelbrot(a, b, c, d, e, f);
       
       document.getElementById('x_dimm').value = a;
@@ -232,20 +270,52 @@ function unbindBuffers() {
 //Shader Code 
 var fragShaderSource = "\
 precision highp float;\
-uniform vec4 u_color;\
+varying vec4 fColor;\
 void main(void) {\
-gl_FragColor = u_color;\
+gl_FragColor = fColor;\
 }\
 ";
 
 var vtxShaderSource = "\
-attribute vec4 a_position;\
-uniform vec4 u_color;\
+attribute vec4 vPosition;\
+attribute vec4 vNormal;\
+varying vec4 fColor;\
+\
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;\
+uniform vec4 lightPosition;\
+uniform float shininess;\
+\
 uniform mat4 x_rotation;\
 uniform mat4 z_rotation;\
 uniform mat4 zoom;\
 void main(void) {\
-gl_Position = x_rotation * z_rotation * zoom * a_position;\
+\
+vec3 pos = (x_rotation * z_rotation * zoom * vPosition).xyz;\
+vec3 L;\
+\
+    L = normalize( lightPosition.xyz + pos);\
+    \
+    vec3 E = -normalize( pos );\
+    vec3 H = normalize( L + E );\
+    \
+    vec3 N = normalize(vNormal.xyz);\
+    \
+    vec4 ambient = ambientProduct;\
+    \
+    float Kd = max( dot(L, N), 0.0 );\
+    vec4  diffuse = Kd*diffuseProduct;\
+    \
+    float Ks = pow( max(dot(N, H), 0.0), shininess );\
+    vec4  specular = Ks * specularProduct;\
+    \
+    if( dot(L, N) < 0.0 ) {\
+      specular = vec4(0.0, 0.0, 0.0, 1.0);\
+    } \
+    gl_Position = x_rotation * z_rotation * zoom * vPosition;\
+\
+    fColor = ambient + diffuse + specular;\
+\
+    fColor.a = 1.0;\
 }\
 ";
 
@@ -264,9 +334,11 @@ function initShaders() {
   gl.attachShader(shaderProgram, fragmentShader);
   gl.linkProgram(shaderProgram);
   gl.useProgram(shaderProgram);
-  shaderProgram.aposAttrib = gl.getAttribLocation(shaderProgram, "a_position");
-  gl.enableVertexAttribArray(shaderProgram.aposAttrib);
-  shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "u_color");
+  shaderProgram.vPosition = gl.getAttribLocation(shaderProgram, "vPosition");
+  gl.enableVertexAttribArray(shaderProgram.vPosition);
+  shaderProgram.vNormal = gl.getAttribLocation(shaderProgram, "vNormal");
+  gl.enableVertexAttribArray(shaderProgram.vNormal);
+  shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "fColor");
   shaderProgram.x_rotation = gl.getUniformLocation(shaderProgram, "x_rotation");
   shaderProgram.z_rotation = gl.getUniformLocation(shaderProgram, "z_rotation");
   shaderProgram.zoom = gl.getUniformLocation(shaderProgram, "zoom"); //set zoom matrix
