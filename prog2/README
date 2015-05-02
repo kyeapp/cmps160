@@ -3,13 +3,19 @@
 // 1270597
 // A.Pang S15
 
-triangle colors predefined to white.
-random triangles are working
-subdivision is working
-used variable last_pressed to keep track of "button state"
+white light at 1, 1, 1.
+smooth gouraud shading.
+material shininess of 10;
+
+to change the modelview change x, y, z at the top of prog2_kyeap.js.
+x, y, z are the amount to rotate in degrees.
 
 
 Files included:
-  lab2_kyeap.html
-  lab2_kyeap.js
   README
+  prog2_kyeap.html
+  prog2_kyeap.js
+  MV.js
+  shark.coor.js
+  shark.poly.js
+  
