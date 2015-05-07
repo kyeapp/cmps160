@@ -12,9 +12,12 @@ z = -10;
 
 var gl, vbuf;
 
+var shader_flag = 0;
+
 var point_array = [];
 var normal_array = [];
-var shading_array = [];
+var smooth_shading_array = [];
+var flat_shading_array = [];
 
 var x_theta = x*Math.PI/180;
 var x1 = Math.cos(x_theta);
@@ -66,8 +69,15 @@ var far = 100.0;
 
 perspective_matrix = perspective2(fovy, aspect, near, far);
 
+//background color
+var R = 0;
+var G = 191;
+var B = 255;
+var A = 255;
+
 function init() {
-  gl.clearColor(0.0, .75, 1.0, 1); //preset value of background color to deep sky blue; RGBA
+  //gl.clearColor(0.0, .75, 1.0, 1); //preset value of background color to deep sky blue; RGBA
+  gl.clearColor(R/255, G/255, B/255, A/255);
   gl.clear(gl.COLOR_BUFFER_BIT); //clearing the color buffer to the preset colors
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.GREATER);
@@ -111,15 +121,52 @@ function setup() {
   
   if (!gl) { alert("Unable to initialize WebGL."); } 
   else {
+    
     generate_shark();
+    var arraysize = canvas.width * canvas.height * 4; 
+    var pixelData = new Uint8Array ( arraysize) 
+    gl.readPixels ( 0,0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+    var colorData = new Uint32Array ( pixelData.buffer);
+    
+    document.getElementById( "shift" ).onclick = function () {
+      shader_flag++;
+      generate_shark();
+      
+      //console.log(pixelData);  
+      // pixelData looks like this: [R, G, B, A, R, G, B, A, ...]
+      // colorData looks like this: [ABGR, ABGR, ...]
+
+    }
+    
+    document.getElementById('canvas').addEventListener('mousedown', function(evt) {
+      var mousePos = getMousePos(canvas, evt);
+      console.log(mousePos.x);
+      console.log(mousePos.y);
+      
+      var index = (mousePos.y-1)*canvas.width + mousePos.x; //2d to 1d conversion
+      //console.log(index + " " + colorData[index]);
+      if (pixelData[index] != R) {
+        shader_flag++;
+        generate_shark();
+      } 
+    }, false);
   }
+}
+
+function getMousePos(canvas, evt) {
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.round(evt.clientX - rect.left),
+    y: Math.round(evt.clientY - rect.top - ((evt.clientY - rect.top)-(canvas.height/2))*2)
+  };
 }
 
 //process each shark polygon part
 function generate_shark() {
-for (var i = 0; i < SHARK_COORD.length; i++) {
-  shading_array.push(vec4(0,0,0,0));
-}
+  for (var i = 0; i < SHARK_COORD.length; i++) {
+    smooth_shading_array.push(vec4(0,0,0,0));
+  }
+  
   gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   point_array = [];
   nomral_array = [];
@@ -133,7 +180,7 @@ for (var i = 0; i < SHARK_COORD.length; i++) {
   for (var i = 0; i < SHARK_POLY.length; i++) {
     ps_normals(SHARK_POLY[i]);
   }
-  render(point_array, normal_array); //render the shark
+  render(point_array, normal_array, flat_shading_array, shader_flag); //render the shark
 }
 
 //Process_shark_polygon, takes input of single array of shark polygon index
@@ -152,32 +199,36 @@ function ps_polygon(poly) {
     var normal = normalize(cross(t1, t2));
     normal = vec4(normal);
     
-    shading_array[poly[1]-1] = add(shading_array[poly[1]-1], normal);
-    shading_array[poly[i+1]-1] = add(shading_array[poly[i+1]-1], normal);
-    shading_array[poly[i+2]-1] = add(shading_array[poly[i+2]-1], normal);
+    //adding normals to other adjecent normals
+    smooth_shading_array[poly[1]-1] = add(smooth_shading_array[poly[1]-1], normal);
+    smooth_shading_array[poly[i+1]-1] = add(smooth_shading_array[poly[i+1]-1], normal);
+    smooth_shading_array[poly[i+2]-1] = add(smooth_shading_array[poly[i+2]-1], normal);
     
-    //normal_array.push(normal);
-    //normal_array.push(normal);
-    //normal_array.push(normal);
+    //pushing flat shading normals
+    flat_shading_array.push(normal);
+    flat_shading_array.push(normal);
+    flat_shading_array.push(normal);
   }
 }
-function ps_normals(poly) {
 
+function ps_normals(poly) {
   var a, b, c;
+  
   a = vec4(SHARK_COORD[poly[1]-1]);
   for (var i = 1; i < poly.length-2; i++) {
     b = vec4(SHARK_COORD[poly[i+1]-1]);
     c = vec4(SHARK_COORD[poly[i+2]-1]);
 
-    normal_array.push(shading_array[poly[1]-1]);
-    normal_array.push(shading_array[poly[i+1]-1]);
-    normal_array.push(shading_array[poly[i+2]-1]);  
+    normal_array.push(smooth_shading_array[poly[1]-1]);
+    normal_array.push(smooth_shading_array[poly[i+1]-1]);
+    normal_array.push(smooth_shading_array[poly[i+2]-1]);  
   }
 }
 
-function render(vert, norm) {
+function render(vert, smooth, flat, shader_flag) {
   init_v_buffer(vert);
-  init_n_buffer(norm);
+  if (shader_flag%2 == 0) { init_n_buffer(smooth); }
+  else { init_n_buffer(flat); }
   gl.uniform4f(shaderProgram.colorUniform, 1, 1, 1, 1);  //sets the color of the lines.
   gl.drawArrays(gl.TRIANGLES, 0, vert.length);
   //unbindBuffers();
@@ -203,10 +254,10 @@ function perspective2( fovy, aspect, near, far )
   var f = Math.tan(Math.PI * 0.5 - 0.5 * fovy);
   var rangeInv = 1.0 / (near - far);
   return [
-    -f/aspect, 0, 0, 0,
-    0, -f/aspect, 0, 0,
-    0, 0, 1, -1,
-    0, 0, near * far * rangeInv * 2, 1
+  -f/aspect, 0, 0, 0,
+  0, -f/aspect, 0, 0,
+  0, 0, 1, -1,
+  0, 0, near * far * rangeInv * 2, 1
   ];
 }
 

@@ -1,0 +1,21 @@
+// Kevin Yeap
+// kyeap@ucsc.edu
+// 1270597
+// A.Pang S15
+
+white light at 1, 1, 1.
+smooth gouraud shading.
+material shininess of 10;
+
+to change the modelview change x, y, z at the top of prog2_kyeap.js.
+x, y, z are the amount to rotate in degrees.
+
+
+Files included:
+  README
+  prog2_kyeap.html
+  prog2_kyeap.js
+  MV.js
+  shark.coor.js
+  shark.poly.js
+  
