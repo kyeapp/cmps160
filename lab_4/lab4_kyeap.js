@@ -13,6 +13,7 @@ z = -10;
 var gl, vbuf;
 
 var shader_flag = 0;
+var perspective_flag = 0;
 
 var point_array = [];
 var normal_array = [];
@@ -67,7 +68,7 @@ var aspect = 640/480;       // Viewport aspect ratio
 var near = 0.3;
 var far = 100.0;
 
-perspective_matrix = perspective2(fovy, aspect, near, far);
+
 
 //background color
 var R = 0;
@@ -139,16 +140,22 @@ function setup() {
     }
     
     document.getElementById('canvas').addEventListener('mousedown', function(evt) {
-      var mousePos = getMousePos(canvas, evt);
-      console.log(mousePos.x);
-      console.log(mousePos.y);
-      
+      var mousePos = getMousePos(canvas, evt);      
       var index = (mousePos.y-1)*canvas.width + mousePos.x; //2d to 1d conversion
-      //console.log(index + " " + colorData[index]);
-      if (pixelData[index] != R) {
+      switch (event.which) {
+        case 1:
+      //console.log(pixelData[index * 4]);
+      if (pixelData[index * 4] != R | pixelData[index * 4 + 1] != G | pixelData[index * 4 + 2] != B) {
         shader_flag++;
         generate_shark();
       } 
+      break;
+      case 3:
+      perspective_flag++;
+      generate_shark();
+           //code to navigate to right page
+            break;
+        }
     }, false);
   }
 }
@@ -163,6 +170,21 @@ function getMousePos(canvas, evt) {
 
 //process each shark polygon part
 function generate_shark() {
+  perspective_matrix = perspective2(fovy, aspect, near, far, perspective_flag);
+
+shaderProgram.x_rotation = gl.getUniformLocation(shaderProgram, "x_rotation");
+  shaderProgram.y_rotation = gl.getUniformLocation(shaderProgram, "y_rotation");
+  shaderProgram.z_rotation = gl.getUniformLocation(shaderProgram, "z_rotation");
+  shaderProgram.zoom = gl.getUniformLocation(shaderProgram, "zoom"); //set zoom matrix
+  shaderProgram.perspective = gl.getUniformLocation(shaderProgram, "perspective");
+  
+  gl.uniformMatrix4fv(shaderProgram.x_rotation, false, new Float32Array(x_rotation_matrix));
+  gl.uniformMatrix4fv(shaderProgram.y_rotation, false, new Float32Array(y_rotation_matrix));
+  gl.uniformMatrix4fv(shaderProgram.z_rotation, false, new Float32Array(z_rotation_matrix));
+  gl.uniformMatrix4fv(shaderProgram.perspective, false, new Float32Array(perspective_matrix));
+  gl.uniformMatrix4fv(shaderProgram.zoom, false, new Float32Array(zoom_matrix));
+
+  
   for (var i = 0; i < SHARK_COORD.length; i++) {
     smooth_shading_array.push(vec4(0,0,0,0));
   }
@@ -249,16 +271,25 @@ function init_n_buffer(data) {
   
 }
 
-function perspective2( fovy, aspect, near, far )
+function perspective2( fovy, aspect, near, far, perspective_flag )
 {
-  var f = Math.tan(Math.PI * 0.5 - 0.5 * fovy);
-  var rangeInv = 1.0 / (near - far);
-  return [
-  -f/aspect, 0, 0, 0,
-  0, -f/aspect, 0, 0,
-  0, 0, 1, -1,
-  0, 0, near * far * rangeInv * 2, 1
-  ];
+
+  if (perspective_flag%2 == 0) {
+    var f = Math.tan(Math.PI * 0.5 - 0.5 * fovy);
+    var rangeInv = 1.0 / (near - far);
+    return [
+    -f/aspect, 0, 0, 0,
+    0, -f/aspect, 0, 0,
+    0, 0, 1, -1,
+    0, 0, near * far * rangeInv * 2, 1
+    ];
+  }
+      return [
+        1, 0, 0, 0,
+        0, 1, 0, 0, 
+        0, 0, 1, 0,
+        0, 0, 0, 1
+        ]
 }
 
 //since unbinding every frame in the buffer doesn't change the result i've commented it out.
@@ -344,17 +375,4 @@ function initShaders() {
   shaderProgram.vNormal = gl.getAttribLocation(shaderProgram, "vNormal");
   gl.enableVertexAttribArray(shaderProgram.vNormal);
   shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "fColor");
-  
-  shaderProgram.x_rotation = gl.getUniformLocation(shaderProgram, "x_rotation");
-  shaderProgram.y_rotation = gl.getUniformLocation(shaderProgram, "y_rotation");
-  shaderProgram.z_rotation = gl.getUniformLocation(shaderProgram, "z_rotation");
-  shaderProgram.zoom = gl.getUniformLocation(shaderProgram, "zoom"); //set zoom matrix
-  shaderProgram.perspective = gl.getUniformLocation(shaderProgram, "perspective");
-  
-  gl.uniformMatrix4fv(shaderProgram.x_rotation, false, new Float32Array(x_rotation_matrix));
-  gl.uniformMatrix4fv(shaderProgram.y_rotation, false, new Float32Array(y_rotation_matrix));
-  gl.uniformMatrix4fv(shaderProgram.z_rotation, false, new Float32Array(z_rotation_matrix));
-  gl.uniformMatrix4fv(shaderProgram.perspective, false, new Float32Array(perspective_matrix));
-  gl.uniformMatrix4fv(shaderProgram.zoom, false, new Float32Array(zoom_matrix));
-
 }
