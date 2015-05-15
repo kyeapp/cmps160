@@ -1,0 +1,27 @@
+// Kevin Yeap
+// kyeap@ucsc.edu
+// 1270597
+// A.Pang S15
+
+white light at 1, 1, 1.
+smooth/flat shading.
+material shininess of 10;
+
+Left click the shark to toggle between flat and smooth shading. 
+Right click the shark to toggle between perspective and orthographic view.
+
+Right clicking will still bring up the context menu. I chose not to disable it
+because some browsers have security options that do not allow disabling of the context menu.
+
+to change the modelview change x, y, z at the top of prog2_kyeap.js.
+x, y, z are the amount to rotate in degrees.
+
+
+Files included:
+  README
+  lab4_kyeap.html
+  lab4_kyeap.js
+  MV.js
+  shark.coor.js
+  shark.poly.js
+  
