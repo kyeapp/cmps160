@@ -34,13 +34,11 @@ z3, z4, 0, 0,
 0, 0, 0, 1];
 }
 
-function scaling_matrix(sc) {
-    var result = mat4();
-    result[0][0] = sc;
-    result[1][1] = sc;
-    result[2][2] = sc;
-
-    return flatten(result);
+function scaling_matrix(s) {
+return [1/s, 0, 0, 0,
+0, 1/s, 0, 0, 
+0, 0, 1/s, 0,
+0, 0, 0, 1];
 }
 
 function perspective2(fovy, aspect, near, far) {
