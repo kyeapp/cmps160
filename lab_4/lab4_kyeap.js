@@ -101,6 +101,7 @@ function init() {
   var materialShininess = 10;
 
   ambientProduct = mult(lightAmbient, materialAmbient);
+  console.log(flatten(ambientProduct));
   diffuseProduct = mult(lightDiffuse, materialDiffuse);
   specularProduct = mult(lightSpecular, materialSpecular);
 
@@ -327,7 +328,7 @@ vec3 pos = (x_rotation * y_rotation * z_rotation * zoom * vPosition).xyz;\
 vec3 L;\
 \
     if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);\
-    else L = normalize( lightPosition.xyz - pos );\
+    else L = normalize( lightPosition.xyz );\
     \
     vec3 E = -normalize( pos );\
     vec3 H = normalize( L + E );\

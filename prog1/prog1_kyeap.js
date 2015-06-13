@@ -6,6 +6,8 @@
 
 var gl, vbuf, ibuf; //the opengl context
 
+point_array = [-1, -1, 0, 1, -1, 0 ,0 , 1, 0];
+
 var x_theta = Math.PI/4;
 var x1 = Math.cos(x_theta);
 var x2 = -Math.sin(x_theta);
@@ -30,7 +32,7 @@ z3, z4, 0, 0,
 0, 0, 1, 0,
 0, 0, 0, 1];
 
-var s = 1/350;
+var s = 1/2;
 var zoom_matrix =
 [s, 0, 0, 0,
 0, s, 0, 0, 

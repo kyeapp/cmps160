@@ -1,0 +1,26 @@
+// Kevin Yeap
+// kyeap@ucsc.edu
+// 1270597
+// A.Pang S15
+
+
+Was stuck on a problem where the texture was being used before is was fully loaded for the longest time. 
+set the shark texture to a 1x1 red texture on init. Only when the tiger image is loaded then will the tiger shark load.
+
+MUST USE FIREFOX. CHROME WILL NOT LOAD IMAGE.
+
+
+
+
+
+
+Files included:
+  README
+  lab5_kyeap.html
+  lab5_kyeap.js
+  MV.js
+  shark.coor.js
+  shark.poly.js
+  tiger512.png
+  
+  

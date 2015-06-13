@@ -367,7 +367,7 @@ function rotate( angle, axis )
 
 //----------------------------------------------------------------------------
 
-function scalez( x, y, z )
+function scale( x, y, z )
 {
     if ( Array.isArray(x) && x.length == 3 ) {
         z = x[2];
@@ -380,7 +380,7 @@ function scalez( x, y, z )
     result[1][1] = y;
     result[2][2] = z;
 
-    return flatten(result);
+    return result;
 }
 
 //----------------------------------------------------------------------------
